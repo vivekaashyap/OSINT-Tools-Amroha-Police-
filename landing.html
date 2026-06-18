@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OSINT Link Analysis Platform</title>
+  <style>
+    :root {
+      --bg: #07111F;
+      --panel: #101828;
+      --panel-soft: rgba(16, 24, 40, 0.76);
+      --border: rgba(148, 163, 184, 0.18);
+      --border-strong: rgba(0, 212, 255, 0.34);
+      --accent: #00D4FF;
+      --text: #E2E8F0;
+      --muted: #94A3B8;
+      --shadow: 0 24px 70px rgba(0, 0, 0, 0.36);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--text);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.5;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background:
+        radial-gradient(circle at 18% 8%, rgba(0, 212, 255, 0.14), transparent 28%),
+        radial-gradient(circle at 82% 18%, rgba(59, 130, 246, 0.12), transparent 30%),
+        linear-gradient(rgba(0, 212, 255, 0.035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 212, 255, 0.035) 1px, transparent 1px);
+      background-size: auto, auto, 44px 44px, 44px 44px;
+      opacity: 0.78;
+    }
+
+    .page { position: relative; z-index: 1; }
+    .nav {
+      position: sticky;
+      top: 0;
+      z-index: 5;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      padding: 18px clamp(18px, 4vw, 56px);
+      background: rgba(7, 17, 31, 0.82);
+      border-bottom: 1px solid var(--border);
+      backdrop-filter: blur(16px);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      color: var(--text);
+      font-weight: 800;
+      letter-spacing: 0.02em;
+    }
+
+    .brand-mark {
+      display: grid;
+      place-items: center;
+      width: 34px;
+      height: 34px;
+      border: 1px solid var(--border-strong);
+      border-radius: 10px;
+      background: rgba(0, 212, 255, 0.1);
+      color: var(--accent);
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
+    .nav-links a { color: inherit; text-decoration: none; }
+    .nav-links a:hover { color: var(--accent); }
+
+    .hero {
+      min-height: calc(100vh - 72px);
+      display: grid;
+      align-items: center;
+      padding: 72px clamp(18px, 5vw, 72px) 54px;
+    }
+
+    .hero-inner {
+      display: grid;
+      grid-template-columns: minmax(0, 1.12fr) minmax(320px, 0.88fr);
+      gap: clamp(28px, 5vw, 70px);
+      align-items: center;
+      max-width: 1220px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 9px;
+      width: fit-content;
+      padding: 8px 12px;
+      border: 1px solid var(--border-strong);
+      border-radius: 999px;
+      background: rgba(0, 212, 255, 0.08);
+      color: var(--accent);
+      font-size: 0.78rem;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      max-width: 780px;
+      margin-top: 24px;
+      color: #f8fafc;
+      font-size: clamp(2.6rem, 7vw, 5.9rem);
+      line-height: 0.95;
+      letter-spacing: -0.055em;
+    }
+
+    .subtitle {
+      max-width: 730px;
+      margin-top: 24px;
+      color: var(--muted);
+      font-size: clamp(1.02rem, 1.6vw, 1.28rem);
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      margin-top: 34px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 46px;
+      padding: 0 20px;
+      border-radius: 10px;
+      font-weight: 800;
+      text-decoration: none;
+      transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease, color 0.18s ease;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #06101d;
+      box-shadow: 0 16px 34px rgba(0, 212, 255, 0.18);
+    }
+
+    .btn-secondary {
+      border: 1px solid var(--border);
+      color: var(--text);
+      background: rgba(16, 24, 40, 0.52);
+    }
+
+    .btn:hover { transform: translateY(-2px); }
+    .btn-secondary:hover { border-color: var(--border-strong); color: var(--accent); }
+
+    .hero-card {
+      position: relative;
+      padding: 22px;
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.012)), var(--panel-soft);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(18px);
+    }
+
+    .console-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 18px;
+      color: var(--muted);
+      font-size: 0.78rem;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .status-pill {
+      padding: 5px 9px;
+      border: 1px solid rgba(0, 212, 255, 0.28);
+      border-radius: 999px;
+      background: rgba(0, 212, 255, 0.08);
+      color: var(--accent);
+    }
+
+    .signal-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .signal {
+      padding: 15px;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: rgba(7, 17, 31, 0.58);
+    }
+
+    .signal b { display: block; color: #f8fafc; font-size: 1.35rem; }
+    .signal span { display: block; margin-top: 4px; color: var(--muted); font-size: 0.82rem; }
+
+    section {
+      max-width: 1220px;
+      margin: 0 auto;
+      padding: 70px clamp(18px, 5vw, 72px);
+    }
+
+    .section-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 20px;
+      align-items: end;
+      margin-bottom: 22px;
+    }
+
+    .section-head h2 {
+      font-size: clamp(1.6rem, 3vw, 2.3rem);
+      letter-spacing: -0.035em;
+    }
+
+    .section-head p {
+      max-width: 520px;
+      color: var(--muted);
+    }
+
+    .cards, .features {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .features { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+
+    .card, .feature, .workflow-step {
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      background: var(--panel-soft);
+      box-shadow: 0 16px 42px rgba(0, 0, 0, 0.18);
+      backdrop-filter: blur(14px);
+    }
+
+    .card, .feature { padding: 20px; }
+    .card h3, .feature h3 { color: #f8fafc; font-size: 1rem; }
+    .card p, .feature p { margin-top: 10px; color: var(--muted); font-size: 0.93rem; }
+    .icon {
+      display: grid;
+      place-items: center;
+      width: 38px;
+      height: 38px;
+      margin-bottom: 18px;
+      border: 1px solid var(--border-strong);
+      border-radius: 12px;
+      background: rgba(0, 212, 255, 0.08);
+      color: var(--accent);
+      font-weight: 900;
+    }
+
+    .workflow {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr auto 1fr auto 1fr;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .workflow-step { padding: 18px; min-height: 120px; }
+    .workflow-step small {
+      display: block;
+      color: var(--accent);
+      font-weight: 900;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    .workflow-step strong { display: block; margin-top: 10px; color: #f8fafc; }
+    .arrow { color: var(--accent); font-weight: 900; }
+
+    footer {
+      padding: 34px clamp(18px, 5vw, 72px);
+      border-top: 1px solid var(--border);
+      color: var(--muted);
+      background: rgba(7, 17, 31, 0.72);
+    }
+
+    .footer-inner {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      max-width: 1220px;
+      margin: 0 auto;
+      font-size: 0.9rem;
+    }
+
+    @media (max-width: 980px) {
+      .hero-inner { grid-template-columns: 1fr; }
+      .cards, .features { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .workflow { grid-template-columns: 1fr; }
+      .arrow { transform: rotate(90deg); text-align: center; }
+      .section-head { display: block; }
+      .section-head p { margin-top: 10px; }
+    }
+
+    @media (max-width: 620px) {
+      .nav { align-items: flex-start; flex-direction: column; }
+      .nav-links { flex-wrap: wrap; }
+      .actions { flex-direction: column; }
+      .btn { width: 100%; }
+      .signal-grid, .cards, .features { grid-template-columns: 1fr; }
+      .footer-inner { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <nav class="nav">
+      <div class="brand"><span class="brand-mark">OS</span><span>OSINT Intelligence Platform</span></div>
+      <div class="nav-links">
+        <a href="#overview">Overview</a>
+        <a href="#workflow">Workflow</a>
+        <a href="#features">Features</a>
+        <a href="login.html">Secure Login</a>
+      </div>
+    </nav>
+
+    <main>
+      <section class="hero">
+        <div class="hero-inner">
+          <div>
+            <div class="eyebrow">Government-grade Cyber Intelligence</div>
+            <h1>OSINT Link Analysis Platform</h1>
+            <p class="subtitle">AI-Assisted Digital Evidence Mapping & Cybercrime Intelligence System</p>
+            <div class="actions">
+              <a class="btn btn-primary" href="login.html">Launch Platform</a>
+              <a class="btn btn-secondary" href="#features">View Features</a>
+            </div>
+          </div>
+
+          <aside class="hero-card" aria-label="Platform readiness overview">
+            <div class="console-header"><span>Operational Readiness</span><span class="status-pill">Secure</span></div>
+            <div class="signal-grid">
+              <div class="signal"><b>SHA-256</b><span>Evidence hashing active</span></div>
+              <div class="signal"><b>AI</b><span>Risk analysis enabled</span></div>
+              <div class="signal"><b>Graph</b><span>Relationship engine ready</span></div>
+              <div class="signal"><b>PDF/JSON</b><span>Reporting pipeline online</span></div>
+            </div>
+          </aside>
+        </div>
+      </section>
+
+      <section id="overview">
+        <div class="section-head">
+          <h2>Intelligence Overview</h2>
+          <p>Designed for cybercrime cells and intelligence teams that need defensible evidence handling, rapid correlation, and clear reporting.</p>
+        </div>
+        <div class="cards">
+          <article class="card"><div class="icon">01</div><h3>Evidence Integrity</h3><p>Preserve evidence references with cryptographic SHA-256 hashing and timestamped records.</p></article>
+          <article class="card"><div class="icon">02</div><h3>AI Investigation</h3><p>Generate structured risk findings, crime pattern summaries, and next-step guidance.</p></article>
+          <article class="card"><div class="icon">03</div><h3>Link Analysis</h3><p>Map phones, emails, domains, IPs, identities, and social handles into a visual graph.</p></article>
+          <article class="card"><div class="icon">04</div><h3>PDF Reporting</h3><p>Export investigation-ready reports for review, escalation, and case documentation.</p></article>
+        </div>
+      </section>
+
+      <section id="workflow">
+        <div class="section-head">
+          <h2>Investigation Workflow</h2>
+          <p>Move from raw digital indicators to an actionable intelligence picture.</p>
+        </div>
+        <div class="workflow">
+          <div class="workflow-step"><small>Step 01</small><strong>Collect Evidence</strong><p>Capture indicators and notes.</p></div>
+          <div class="arrow">-></div>
+          <div class="workflow-step"><small>Step 02</small><strong>Map Relationships</strong><p>Connect entities and infrastructure.</p></div>
+          <div class="arrow">-></div>
+          <div class="workflow-step"><small>Step 03</small><strong>Analyze Network</strong><p>Run risk and law mapping.</p></div>
+          <div class="arrow">-></div>
+          <div class="workflow-step"><small>Step 04</small><strong>Generate Report</strong><p>Export PDF and JSON case data.</p></div>
+        </div>
+      </section>
+
+      <section id="features">
+        <div class="section-head">
+          <h2>Features Grid</h2>
+          <p>Core capabilities needed by modern cyber investigation teams.</p>
+        </div>
+        <div class="features">
+          <article class="feature"><h3>SHA-256 Hashing</h3><p>Integrity references for every evidence node.</p></article>
+          <article class="feature"><h3>AI Risk Scoring</h3><p>Automated case severity and threat classification.</p></article>
+          <article class="feature"><h3>Graph Intelligence</h3><p>Cytoscape-powered relationship mapping.</p></article>
+          <article class="feature"><h3>IT Act Mapping</h3><p>AI-assisted identification of relevant legal sections.</p></article>
+          <article class="feature"><h3>BNS Mapping</h3><p>Structured mapping for cybercrime case workflows.</p></article>
+          <article class="feature"><h3>Export Reports</h3><p>PDF and JSON outputs for operational handoff.</p></article>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <div class="footer-inner">
+        <span>OSINT Link Analysis Platform</span>
+        <span>For authorized investigation and intelligence use only.</span>
+      </div>
+    </footer>
+  </div>
+</body>
+</html>

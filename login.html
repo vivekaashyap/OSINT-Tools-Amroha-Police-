@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Secure Login | OSINT Link Analysis Platform</title>
+  <style>
+    :root {
+      --bg: #07111F;
+      --panel: #101828;
+      --panel-soft: rgba(16, 24, 40, 0.78);
+      --border: rgba(148, 163, 184, 0.18);
+      --border-strong: rgba(0, 212, 255, 0.34);
+      --accent: #00D4FF;
+      --text: #E2E8F0;
+      --muted: #94A3B8;
+      --danger: #ff4757;
+      --success: #00ff88;
+      --shadow: 0 24px 70px rgba(0, 0, 0, 0.38);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at 18% 12%, rgba(0, 212, 255, 0.15), transparent 30%),
+        radial-gradient(circle at 84% 20%, rgba(59, 130, 246, 0.12), transparent 32%),
+        var(--bg);
+      color: var(--text);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    .shell {
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(360px, 460px);
+    }
+
+    .brand-side {
+      position: relative;
+      display: flex;
+      align-items: center;
+      padding: clamp(28px, 6vw, 78px);
+      overflow: hidden;
+      border-right: 1px solid var(--border);
+    }
+
+    .brand-side::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(0, 212, 255, 0.035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 212, 255, 0.035) 1px, transparent 1px);
+      background-size: 44px 44px;
+      mask-image: linear-gradient(90deg, black, transparent 88%);
+    }
+
+    .brand-content {
+      position: relative;
+      z-index: 1;
+      max-width: 720px;
+    }
+
+    .brand-mark {
+      display: inline-grid;
+      place-items: center;
+      width: 46px;
+      height: 46px;
+      margin-bottom: 28px;
+      border: 1px solid var(--border-strong);
+      border-radius: 14px;
+      background: rgba(0, 212, 255, 0.1);
+      color: var(--accent);
+      font-weight: 900;
+    }
+
+    h1 {
+      max-width: 700px;
+      color: #f8fafc;
+      font-size: clamp(2.1rem, 4.8vw, 4.8rem);
+      line-height: 0.98;
+      letter-spacing: -0.055em;
+    }
+
+    .description {
+      max-width: 620px;
+      margin-top: 24px;
+      color: var(--muted);
+      font-size: 1.05rem;
+      line-height: 1.75;
+    }
+
+    .highlights {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+      max-width: 660px;
+      margin-top: 34px;
+    }
+
+    .highlight {
+      padding: 16px;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: rgba(16, 24, 40, 0.56);
+      backdrop-filter: blur(12px);
+    }
+
+    .highlight b { display: block; color: var(--text); }
+    .highlight span { display: block; margin-top: 5px; color: var(--muted); font-size: 0.9rem; }
+
+    .login-side {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 28px;
+      background: rgba(7, 17, 31, 0.54);
+    }
+
+    .login-card {
+      width: 100%;
+      max-width: 420px;
+      padding: 30px;
+      border: 1px solid var(--border);
+      border-radius: 22px;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.012)), var(--panel-soft);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(18px);
+    }
+
+    .card-head {
+      margin-bottom: 24px;
+    }
+
+    .eyebrow {
+      color: var(--accent);
+      font-size: 0.76rem;
+      font-weight: 900;
+      letter-spacing: 0.09em;
+      text-transform: uppercase;
+    }
+
+    h2 {
+      margin-top: 8px;
+      color: #f8fafc;
+      font-size: 1.55rem;
+      letter-spacing: -0.03em;
+    }
+
+    .field {
+      margin-top: 14px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 7px;
+      color: var(--muted);
+      font-size: 0.84rem;
+      font-weight: 700;
+    }
+
+    input {
+      width: 100%;
+      min-height: 46px;
+      padding: 0 13px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: rgba(7, 17, 31, 0.72);
+      color: var(--text);
+      font: inherit;
+      outline: none;
+      transition: border-color 0.18s ease, box-shadow 0.18s ease;
+    }
+
+    input:focus {
+      border-color: var(--border-strong);
+      box-shadow: 0 0 0 4px rgba(0, 212, 255, 0.09);
+    }
+
+    .login-btn {
+      width: 100%;
+      min-height: 48px;
+      margin-top: 20px;
+      border: 0;
+      border-radius: 10px;
+      background: var(--accent);
+      color: #06101d;
+      cursor: pointer;
+      font: inherit;
+      font-weight: 900;
+      transition: transform 0.18s ease, box-shadow 0.18s ease;
+      box-shadow: 0 16px 32px rgba(0, 212, 255, 0.16);
+    }
+
+    .login-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 18px 36px rgba(0, 212, 255, 0.22);
+    }
+
+    .error {
+      display: none;
+      margin-top: 12px;
+      color: var(--danger);
+      font-size: 0.88rem;
+    }
+
+    .system {
+      margin-top: 24px;
+      padding-top: 20px;
+      border-top: 1px solid var(--border);
+    }
+
+    .system-title {
+      color: var(--muted);
+      font-size: 0.76rem;
+      font-weight: 900;
+      letter-spacing: 0.09em;
+      text-transform: uppercase;
+    }
+
+    .status-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 9px;
+      margin-top: 12px;
+    }
+
+    .status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--text);
+      font-size: 0.88rem;
+    }
+
+    .check {
+      display: inline-grid;
+      place-items: center;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: rgba(0, 255, 136, 0.1);
+      color: var(--success);
+      font-size: 0.72rem;
+      font-weight: 900;
+    }
+
+    .back-link {
+      display: inline-block;
+      margin-top: 18px;
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 0.9rem;
+    }
+
+    .back-link:hover { color: var(--accent); }
+
+    @media (max-width: 920px) {
+      .shell { grid-template-columns: 1fr; }
+      .brand-side { min-height: auto; border-right: 0; border-bottom: 1px solid var(--border); }
+      .login-side { align-items: flex-start; }
+    }
+
+    @media (max-width: 560px) {
+      .brand-side, .login-side { padding: 20px; }
+      .highlights, .status-grid { grid-template-columns: 1fr; }
+      .login-card { padding: 22px; border-radius: 18px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <section class="brand-side">
+      <div class="brand-content">
+        <div class="brand-mark">OS</div>
+        <h1>OSINT Link Analysis Platform</h1>
+        <p class="description">Secure officer access for AI-assisted digital evidence mapping, graph intelligence, legal section mapping, and investigation report generation.</p>
+        <div class="highlights">
+          <div class="highlight"><b>Controlled Access</b><span>Session-gated dashboard for authorized investigation personnel.</span></div>
+          <div class="highlight"><b>Evidence Integrity</b><span>SHA-256 hashing and timestamped evidence handling.</span></div>
+          <div class="highlight"><b>AI Intelligence</b><span>Risk, pattern, law, and next-step analysis support.</span></div>
+          <div class="highlight"><b>Operational Reports</b><span>PDF and JSON exports for case review and escalation.</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="login-side">
+      <div class="login-card">
+        <div class="card-head">
+          <div class="eyebrow">Secure Access Gateway</div>
+          <h2>Officer Login</h2>
+        </div>
+
+        <form id="loginForm">
+          <div class="field">
+            <label for="officerId">Officer ID</label>
+            <input id="officerId" name="officerId" autocomplete="username" placeholder="e.g. CYBER-001" required>
+          </div>
+          <div class="field">
+            <label for="password">Password</label>
+            <input id="password" name="password" type="password" autocomplete="current-password" placeholder="Enter secure password" required>
+          </div>
+          <button class="login-btn" type="submit">Secure Login</button>
+          <div id="loginError" class="error">Officer ID and password are required.</div>
+        </form>
+
+        <div class="system">
+          <div class="system-title">System Status</div>
+          <div class="status-grid">
+            <div class="status"><span class="check">✓</span> Graph Engine</div>
+            <div class="status"><span class="check">✓</span> Evidence Integrity</div>
+            <div class="status"><span class="check">✓</span> AI Analysis</div>
+            <div class="status"><span class="check">✓</span> Report Generator</div>
+          </div>
+        </div>
+
+        <a class="back-link" href="landing.html">Back to platform overview</a>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    (function() {
+      const existingSession = localStorage.getItem('osint_session');
+      if (existingSession) {
+        try {
+          const parsed = JSON.parse(existingSession);
+          if (parsed && parsed.officerId) window.location.href = 'index.html';
+        } catch (e) {
+          localStorage.removeItem('osint_session');
+        }
+      }
+
+      const form = document.getElementById('loginForm');
+      const error = document.getElementById('loginError');
+      form.addEventListener('submit', function(event) {
+        event.preventDefault();
+        const officerId = document.getElementById('officerId').value.trim();
+        const password = document.getElementById('password').value.trim();
+        if (!officerId || !password) {
+          error.style.display = 'block';
+          return;
+        }
+
+        const session = {
+          officerId,
+          officerName: officerId,
+          loginAt: new Date().toISOString(),
+          role: 'Investigator'
+        };
+        localStorage.setItem('osint_session', JSON.stringify(session));
+        window.location.href = 'index.html';
+      });
+    })();
+  </script>
+</body>
+</html>
